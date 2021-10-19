@@ -1,7 +1,32 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 import requests
+import secrets
 from bs4 import BeautifulSoup
 import re
+import os
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
+
+app = FastAPI()
+
+@app.middleware("http")
+async def check_rapidAPI_proxy_header(request: Request, call_next):
+    # Check if server knows about valid "secret"
+    secret_header = os.environ.get("PROXY_SECRET", None)
+    if secret_header:
+        headers = request.headers
+        # If the header is missing, or does not match expected value
+        # Reject the request altogether
+        if (
+            "X-RapidAPI-Proxy-Secret" not in headers
+            or secrets.compare_digest(headers["X-RapidAPI-Proxy-Secret"], secret_header)
+        ):
+            return PlainTextResponse(
+                "Direct access to the API not allowed", status_code=403
+            )
+
+    response = await call_next(request)
+    return response
 
 
 def get_archive_url(search_url, timestamp):
@@ -107,9 +132,6 @@ def main(timestamp, keywords, include, sources):
         source_urls_map, timestamp, keywords, include, sources
     )
     return out
-
-
-app = FastAPI()
 
 
 @app.get("/{source}/{timestamp}/")
