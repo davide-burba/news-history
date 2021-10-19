@@ -18,8 +18,8 @@ async def check_rapidAPI_proxy_header(request: Request, call_next):
         # If the header is missing, or does not match expected value
         # Reject the request altogether
         if (
-            "X-RapidAPI-Proxy-Secret" not in headers
-            or secrets.compare_digest(headers["X-RapidAPI-Proxy-Secret"], secret_header)
+            "x-rapidapi-proxy-secret" not in headers
+            or not secrets.compare_digest(headers["x-rapidapi-proxy-secret"], secret_header)
         ):
             return PlainTextResponse(
                 "Direct access to the API not allowed", status_code=403
